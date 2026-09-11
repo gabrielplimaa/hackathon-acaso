@@ -46,7 +46,7 @@ if not st.session_state.usuario_logado:
     with col_center:
         st.markdown("""
         <div style="text-align: center; margin-bottom: 2rem;">
-            <div style="display: inline-block; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 16px; border: 1px solid rgba(99, 102, 241, 0.2); margin-bottom: 12px;">
+            <div class="brand-icon-box">
                 <span style="font-size: 2rem;">⚡</span>
             </div>
             <h1 class="brand-title" style="margin: 0;">DataLogic Eval</h1>
