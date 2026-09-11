@@ -11,7 +11,7 @@ def inicializar_banco():
     conn = conectar_banco()
     cursor = conn.cursor()
     
-    # Tabela de Usuários
+    # Tabela de Usuários atualizada
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +20,7 @@ def inicializar_banco():
         perfil TEXT NOT NULL,
         setor TEXT NOT NULL,
         streak INTEGER DEFAULT 1,
+        ultima_atividade TEXT DEFAULT CURRENT_DATE,
         score_logic INTEGER DEFAULT 0,
         score_sql INTEGER DEFAULT 0,
         score_bi INTEGER DEFAULT 0
@@ -37,12 +38,12 @@ def inicializar_banco():
     )
     """)
     
-    # Inserir usuário demo chefe por padrão (se não existir)
+    # Inserir usuário demo chefe por padrão
     cursor.execute("SELECT * FROM usuarios WHERE nome = ?", ("Admin Chefe",))
     if not cursor.fetchone():
         cursor.execute("""
-        INSERT INTO usuarios (nome, senha, perfil, setor, streak, score_logic, score_sql, score_bi)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO usuarios (nome, senha, perfil, setor, streak, ultima_atividade, score_logic, score_sql, score_bi)
+        VALUES (?, ?, ?, ?, ?, CURRENT_DATE, ?, ?, ?)
         """, ("Admin Chefe", "admin123", "chefe", "Gestão de TI", 15, 100, 100, 100))
         
     conn.commit()
@@ -73,8 +74,8 @@ def registrar_usuario(nome, senha, perfil, setor):
         conn = conectar_banco()
         cursor = conn.cursor()
         cursor.execute("""
-        INSERT INTO usuarios (nome, senha, perfil, setor, streak, score_logic, score_sql, score_bi)
-        VALUES (?, ?, ?, ?, 1, 0, 0, 0)
+        INSERT INTO usuarios (nome, senha, perfil, setor, streak, ultima_atividade, score_logic, score_sql, score_bi)
+        VALUES (?, ?, ?, ?, 1, CURRENT_DATE, 0, 0, 0)
         """, (nome, senha, perfil, setor))
         conn.commit()
         conn.close()

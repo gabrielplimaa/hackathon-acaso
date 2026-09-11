@@ -18,78 +18,154 @@ html, body, [class*="css"] {
     color: #f8fafc;
 }
 
-/* Ocultar elementos nativos do Streamlit */
 #MainMenu, footer, header { visibility: hidden; }
 
-/* Animação de Entrada e Glow nos Cards */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ==================================================== */
+/* REMOÇÃO ABSOLUTA DE BORDAS E DESTAQUES VERMELHOS     */
+/* ==================================================== */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: rgba(15, 23, 42, 0.6);
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 44px;
+    border-radius: 10px;
+    color: #94a3b8;
+    font-weight: 600;
+    border: none !important;
+    outline: none !important;
+    padding: 0 20px;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4) !important;
+}
+
+/* REMOÇÃO AGRESSIVA DA BORDA ROSA/HIGHLIGHT NATIVA DO STREAMLIT */
+.stTabs div[data-baseweb="tab-highlight"],
+.stTabs div[data-baseweb="tab-border"],
+.stTabs div[data-baseweb="tab-highlight-container"] {
+    display: none !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.stTabs button[data-baseweb="tab"],
+.stTabs button[data-baseweb="tab"]:focus,
+.stTabs button[data-baseweb="tab"]:active,
+.stTabs button[data-baseweb="tab"]:focus-visible {
+    border: 0px transparent !important;
+    border-style: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* ==================================================== */
+/* COMPONENTES E CARDS                                  */
+/* ==================================================== */
+
+/* Ajuste na Welcome Box - atua como um glass-card */
+.welcome-box {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 16px;
+    padding: 22px;
+    color: #cbd5e1;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .glass-card {
-    background: rgba(15, 23, 42, 0.65);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(139, 92, 246, 0.25);
-    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
     padding: 28px;
-    box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3),
-                0 0 20px 0 rgba(139, 92, 246, 0.15);
-    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    transition: all 0.4s ease;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
 }
 
-.glass-card:hover {
-    border-color: rgba(168, 85, 247, 0.5);
-    box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.5),
-                0 0 30px 2px rgba(168, 85, 247, 0.3);
-    transform: translateY(-3px);
-}
-
-/* Animação Pulsante no Ícone Central */
-@keyframes pulseGlow {
+/* NOVO ESTILO DA LOGO: ORBE DE ENERGIA */
+@keyframes orbGlow {
     0% {
-        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), 0 0 50px rgba(99, 102, 241, 0.3);
         transform: scale(1);
     }
     50% {
-        box-shadow: 0 0 25px 10px rgba(168, 85, 247, 0.4);
-        transform: scale(1.05);
+        box-shadow: 0 0 45px rgba(168, 85, 247, 0.8), 0 0 80px rgba(99, 102, 241, 0.5);
+        transform: scale(1.06);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), 0 0 50px rgba(99, 102, 241, 0.3);
         transform: scale(1);
     }
 }
 
 .brand-icon-box {
-    display: inline-block;
-    padding: 16px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
-    border-radius: 20px;
-    border: 1px solid rgba(168, 85, 247, 0.4);
-    margin-bottom: 12px;
-    animation: pulseGlow 3s infinite;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 86px;
+    height: 86px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(99, 102, 241, 0.2) 60%, transparent 100%);
+    border-radius: 50%;
+    border: 1px solid rgba(168, 85, 247, 0.5);
+    margin-bottom: 16px;
+    animation: orbGlow 3s infinite ease-in-out;
 }
 
-/* Título com Texto Gradiente Neon */
+.brand-icon-box span {
+    font-size: 3rem;
+    filter: drop-shadow(0 0 16px #c084fc);
+}
+
 .brand-title {
-    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 40%, #c084fc 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-weight: 800;
-    font-size: 2.5rem;
-    letter-spacing: -1px;
+    font-size: 2.8rem;
+    letter-spacing: -1.5px;
 }
 
-/* Badges Customizados */
+.stButton > button {
+    width: 100%;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 24px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.stTextInput input, .stTextArea textarea, .stSelectbox select {
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 14px !important;
+    color: #f8fafc !important;
+    padding: 12px 16px !important;
+}
+
 .badge-streak {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.4));
     border: 1px solid rgba(245, 158, 11, 0.6);
@@ -97,8 +173,6 @@ html, body, [class*="css"] {
     padding: 6px 14px;
     border-radius: 99px;
     font-weight: 700;
-    font-size: 0.85rem;
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
 }
 
 .badge-role {
@@ -109,67 +183,6 @@ html, body, [class*="css"] {
     border-radius: 8px;
     font-size: 0.75rem;
     font-weight: 700;
-    text-transform: uppercase;
-}
-
-/* Estilização das Aba (Tabs) */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
-    background-color: rgba(15, 23, 42, 0.7);
-    padding: 6px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.stTabs [data-baseweb="tab"] {
-    height: 46px;
-    border-radius: 12px;
-    color: #94a3b8;
-    font-weight: 600;
-    border: none !important;
-    padding: 0 20px;
-    transition: all 0.3s ease;
-}
-
-.stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
-}
-
-/* Botões com Efeito Hover Neon */
-.stButton > button {
-    width: 100%;
-    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-    color: white;
-    border: none;
-    border-radius: 14px;
-    padding: 14px 24px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-}
-
-.stButton > button:hover {
-    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.6);
-}
-
-/* Inputs da Interface */
-.stTextInput input, .stTextArea textarea, .stSelectbox select {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-    border: 1px solid rgba(139, 92, 246, 0.3) !important;
-    border-radius: 14px !important;
-    color: #f8fafc !important;
-    padding: 12px 16px !important;
-    transition: all 0.3s ease !important;
-}
-
-.stTextInput input:focus, .stTextArea textarea:focus {
-    border-color: #a855f7 !important;
-    box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
 }
 
 .feedback-item {

@@ -1,6 +1,8 @@
 import os
+import json
 import streamlit as st
 import database as db
+from google import genai
 
 # Configuração da página
 st.set_page_config(
@@ -35,6 +37,51 @@ if "usuario_logado" not in st.session_state:
 if "modulo_ativo" not in st.session_state:
     st.session_state.modulo_ativo = None
 
+# Função da IA para ler e avaliar o Portfólio
+def analisar_portfolio_ia(texto_portfolio):
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        st.error("Chave API do Gemini não configurada na variável de ambiente GEMINI_API_KEY!")
+        return None
+
+    try:
+        # Passando a chave diretamente ou via variável de ambiente
+        client = genai.Client(api_key=api_key)
+        prompt = f"""
+        Você é um avaliador técnico sênior em Tecnologia e Dados.
+        Analise o portfólio/projetos descritos e atribua uma nota de 0 a 100 para três competências:
+        1. Lógica de Programação (score_logic)
+        2. Banco de Dados & SQL (score_sql)
+        3. Business Intelligence (score_bi)
+
+        Dê também um parecer bem resumido com a justificativa.
+
+        Retorne EXCLUSIVAMENTE um objeto JSON estrito no seguinte formato:
+        {{
+            "score_logic": 85,
+            "score_sql": 90,
+            "score_bi": 70,
+            "feedback": "Texto explicativo curto..."
+        }}
+
+        Portfólio / Projetos:
+        {texto_portfolio}
+        """
+
+        response = client.models.generate_content(
+            model='gemini-3.6-flash',
+            contents=prompt,
+        )
+
+        content = response.text.strip()
+        if content.startswith("```json"):
+            content = content.replace("```json", "").replace("```", "").strip()
+        
+        return json.loads(content)
+    except Exception as e:
+        st.error(f"Erro na análise: {e}")
+        return None
+
 # ==========================================
 # TELA DE AUTENTICAÇÃO (LOGIN / CADASTRO)
 # ==========================================
@@ -47,17 +94,22 @@ if not st.session_state.usuario_logado:
         st.markdown("""
         <div style="text-align: center; margin-bottom: 2rem;">
             <div class="brand-icon-box">
-                <span style="font-size: 2rem;">⚡</span>
+                <span>⚡</span>
             </div>
             <h1 class="brand-title" style="margin: 0;">DataLogic Eval</h1>
-            <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 6px;">Plataforma de Avaliação Contínua & Insights de Performance</p>
+            <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 8px; font-weight: 500;">Plataforma de Avaliação Contínua & Insights de Performance</p>
         </div>
         """, unsafe_allow_html=True)
         
         tab_login, tab_cad = st.tabs(["🔑 Entrar no Sistema", "✨ Criar Nova Conta"])
         
         with tab_login:
-            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="welcome-box">
+                💡 <b>Bem-vindo de volta!</b> Insira suas credenciais abaixo para acessar seus módulos e acompanhar sua evolução.
+            </div>
+            """, unsafe_allow_html=True)
+            
             nome_login = st.text_input("Usuário", placeholder="Digite seu nome de usuário")
             senha_login = st.text_input("Senha", type="password", placeholder="••••••••")
             st.write("")
@@ -69,10 +121,14 @@ if not st.session_state.usuario_logado:
                     st.rerun()
                 else:
                     st.error("Credenciais inválidas. Tente novamente.")
-            st.markdown('</div>', unsafe_allow_html=True)
 
         with tab_cad:
-            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="welcome-box">
+                🚀 <b>Primeira vez por aqui?</b> Crie sua conta corporativa em poucos segundos e inicie suas avaliações.
+            </div>
+            """, unsafe_allow_html=True)
+            
             novo_nome = st.text_input("Nome Completo", placeholder="Ex: Ana Silva")
             nova_senha = st.text_input("Senha de Acesso", type="password", placeholder="••••••••")
             c_perfil, c_setor = st.columns(2)
@@ -89,7 +145,6 @@ if not st.session_state.usuario_logado:
                         st.warning("Nome de usuário já cadastrado.")
                 else:
                     st.warning("Preencha todos os campos obrigatórios.")
-            st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # PAINEL PRINCIPAL (AUTENTICADO)
@@ -97,7 +152,7 @@ if not st.session_state.usuario_logado:
 else:
     user = st.session_state.usuario_logado
     
-    # TOP BAR / HEADER APLICAÇÃO
+    # TOP BAR
     c_brand, c_user_info, c_logout = st.columns([2.5, 3, 0.8])
     
     with c_brand:
@@ -128,18 +183,47 @@ else:
     if user["perfil"] == "funcionario":
         tab_desafios, tab_feedback = st.tabs(["🎯 Módulos de Avaliação", "💬 Feedback & Experiência"])
 
-        # ABA 1: DESAFIOS E TESTES
         with tab_desafios:
             if st.session_state.modulo_ativo is None:
                 st.markdown("### Seus Módulos de Aprendizado")
-                st.caption("Complete os testes para elevar seu score técnico no painel da liderança.")
-                st.write("")
+                st.caption("Complete os testes ou submeta seu portfólio para calcular sua nota via IA.")
                 
+                # AVALIAÇÃO VIA IA
+                st.markdown('<div class="glass-card" style="margin-bottom: 24px;">', unsafe_allow_html=True)
+                st.markdown("#### 🤖 Avaliação de Portfólio com IA")
+                st.caption("Insira o resumo do seu portfólio, experiências ou links de projetos no GitHub/LinkedIn para receber notas automáticas.")
+                
+                portfolio_input = st.text_area(
+                    "Portfólio / Projetos Realizados:",
+                    placeholder="Cole aqui a descrição dos seus projetos técnicos em Lógica, SQL ou BI...",
+                    height=90
+                )
+                
+                if st.button("✨ Analisar Portfólio com Gemini IA"):
+                    if portfolio_input.strip():
+                        with st.spinner("Analisando competências técnicas com IA..."):
+                            res = analisar_portfolio_ia(portfolio_input)
+                            if res:
+                                db.salvar_score(user["nome"], "logic", res["score_logic"])
+                                db.salvar_score(user["nome"], "sql", res["score_sql"])
+                                db.salvar_score(user["nome"], "bi", res["score_bi"])
+                                
+                                user["score_logic"] = res["score_logic"]
+                                user["score_sql"] = res["score_sql"]
+                                user["score_bi"] = res["score_bi"]
+                                
+                                st.success("Avaliação realizada!")
+                                st.info(f"**Análise da IA:** {res['feedback']}")
+                                st.rerun()
+                    else:
+                        st.warning("Cole a descrição do seu portfólio antes de solicitar a avaliação.")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                # CARDS DOS MÓDULOS
                 col_m1, col_m2, col_m3 = st.columns(3)
                 
                 with col_m1:
                     score_l = user['score_logic']
-                    status_l = "Completed" if score_l > 0 else "Pending"
                     st.markdown(f"""
                     <div class="glass-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -189,189 +273,96 @@ else:
                         st.session_state.modulo_ativo = "bi"
                         st.rerun()
 
-            # QUIZ INTERATIVO (QUANDO UM MÓDULO É SELECIONADO)
             else:
                 modulo = st.session_state.modulo_ativo
-                
                 st.markdown('<div class="glass-card">', unsafe_allow_html=True)
                 
                 if modulo == "logic":
                     st.markdown("### 🧠 Avaliação: Lógica de Programação")
-                    st.caption("Responda às questões abaixo com atenção. Cada questão vale 50 pontos.")
-                    st.write("")
-                    
                     with st.form("form_test_logic"):
                         q1 = st.radio("1) Qual o resultado da expressão em Python: `10 + 2 * 3`?", ["36", "16", "24", "15"])
-                        st.write("")
                         q2 = st.radio("2) Qual estrutura é ideal para iterar repetidamente enquanto uma condição for verdadeira?", ["if / else", "for", "while", "switch"])
-                        st.write("")
-                        
-                        btn_enviar = st.form_submit_button("Submeter Respostas 📤")
-                        if btn_enviar:
-                            nota = 0
-                            if q1 == "16": nota += 50
-                            if q2 == "while": nota += 50
-                            
+                        if st.form_submit_button("Submeter Respostas 📤"):
+                            nota = (50 if q1 == "16" else 0) + (50 if q2 == "while" else 0)
                             db.salvar_score(user["nome"], "logic", nota)
                             user["score_logic"] = nota
                             st.session_state.modulo_ativo = None
-                            st.success(f"Avaliação Concluída! Nota final registrada: {nota}/100")
                             st.rerun()
 
                 elif modulo == "sql":
                     st.markdown("### 🗄️ Avaliação: Banco de Dados & SQL")
-                    st.caption("Responda às questões abaixo com atenção. Cada questão vale 50 pontos.")
-                    st.write("")
-                    
                     with st.form("form_test_sql"):
-                        q1 = st.radio("1) Qual comando DML é utilizado para extrair e consultar dados de uma tabela?", ["UPDATE", "INSERT", "SELECT", "DELETE"])
-                        st.write("")
-                        q2 = st.radio("2) Qual cláusula é utilizada para filtrar resultados agregados produzidos por um `GROUP BY`?", ["WHERE", "HAVING", "ORDER BY", "JOIN"])
-                        st.write("")
-                        
-                        btn_enviar = st.form_submit_button("Submeter Respostas 📤")
-                        if btn_enviar:
-                            nota = 0
-                            if q1 == "SELECT": nota += 50
-                            if q2 == "HAVING": nota += 50
-                            
+                        q1 = st.radio("1) Qual comando DML é utilizado para extrair dados?", ["UPDATE", "INSERT", "SELECT", "DELETE"])
+                        q2 = st.radio("2) Qual cláusula filtra agrupamentos?", ["WHERE", "HAVING", "ORDER BY", "JOIN"])
+                        if st.form_submit_button("Submeter Respostas 📤"):
+                            nota = (50 if q1 == "SELECT" else 0) + (50 if q2 == "HAVING" else 0)
                             db.salvar_score(user["nome"], "sql", nota)
                             user["score_sql"] = nota
                             st.session_state.modulo_ativo = None
-                            st.success(f"Avaliação Concluída! Nota final registrada: {nota}/100")
                             st.rerun()
 
                 elif modulo == "bi":
                     st.markdown("### 📊 Avaliação: Business Intelligence (BI)")
-                    st.caption("Responda às questões abaixo com atenção. Cada questão vale 50 pontos.")
-                    st.write("")
-                    
                     with st.form("form_test_bi"):
-                        q1 = st.radio("1) O que representa a sigla ETL na arquitetura de Data Warehousing?", ["Extract, Transform, Load", "Evaluate, Testing, Logic", "Export, Transfer, Link", "Execute, Track, Log"])
-                        st.write("")
-                        q2 = st.radio("2) Qual é o objetivo primário de um indicador chave de desempenho (KPI)?", ["Armazenar registros em banco", "Medir o progresso estratégico em direção a uma meta", "Executar rotinas em Python", "Criar interfaces web"])
-                        st.write("")
-                        
-                        btn_enviar = st.form_submit_button("Submeter Respostas 📤")
-                        if btn_enviar:
-                            nota = 0
-                            if q1 == "Extract, Transform, Load": nota += 50
-                            if q2 == "Medir o progresso estratégico em direção a uma meta": nota += 50
-                            
+                        q1 = st.radio("1) O que significa ETL?", ["Extract, Transform, Load", "Evaluate, Testing, Logic", "Export, Transfer, Link", "Execute, Track, Log"])
+                        q2 = st.radio("2) Qual o papel de um KPI?", ["Armazenar registros em banco", "Medir o progresso estratégico em direção a uma meta", "Executar rotinas Python", "Criar interfaces web"])
+                        if st.form_submit_button("Submeter Respostas 📤"):
+                            nota = (50 if q1 == "Extract, Transform, Load" else 0) + (50 if q2 == "Medir o progresso estratégico em direção a uma meta" else 0)
                             db.salvar_score(user["nome"], "bi", nota)
                             user["score_bi"] = nota
                             st.session_state.modulo_ativo = None
-                            st.success(f"Avaliação Concluída! Nota final registrada: {nota}/100")
                             st.rerun()
 
                 st.markdown('</div>', unsafe_allow_html=True)
                 st.write("")
-                if st.button("⬅️ Cancelar e Voltar aos Módulos"):
+                if st.button("⬅️ Cancelar"):
                     st.session_state.modulo_ativo = None
                     st.rerun()
 
-        # ABA 2: FEEDBACK CSAT
+        # ABA CSAT
         with tab_feedback:
-            col_f_left, col_f_right = st.columns([1.5, 1])
-            
-            with col_f_left:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                st.markdown("### Como está sendo sua jornada?")
-                st.caption("Seu feedback é anônimo para os colegas, mas ajuda a gestão a evoluir a cultura e as ferramentas.")
-                st.write("")
-                
-                avaliacao_csat = st.select_slider(
-                    "Qual seu nível de satisfação hoje?",
-                    options=["😡 Péssimo", "😕 Ruim", "😐 Indiferente", "🙂 Bom", "🤩 Incrível!"],
-                    value="🙂 Bom"
-                )
-                
-                st.write("")
-                comentario_texto = st.text_area(
-                    "Deixe seus comentários ou sugestões de melhoria:",
-                    placeholder="Conte o que funcionou bem ou o que pode melhorar no seu dia a dia...",
-                    height=140
-                )
-                
-                st.write("")
-                if st.button("Enviar Feedback ✨"):
-                    if comentario_texto.strip():
-                        db.salvar_feedback(user["nome"], avaliacao_csat, comentario_texto)
-                        st.success("Obrigado! Seu feedback foi registrado com sucesso.")
-                    else:
-                        st.warning("Escreva uma breve mensagem antes de enviar.")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with col_f_right:
-                st.markdown("""
-                <div class="glass-card" style="background: rgba(99, 102, 241, 0.05); border-color: rgba(99, 102, 241, 0.2);">
-                    <h4 style="color: #a5b4fc; margin-top: 0;">Por que seu feedback importa?</h4>
-                    <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.6;">
-                        • <b>Melhoria Contínua:</b> Ajustamos a dificuldade das avaliações com base no seu retorno.<br><br>
-                        • <b>Cultura de Transparência:</b> Dê voz aos seus desafios do dia a dia de trabalho.<br><br>
-                        • <b>Evolução Direcionada:</b> Auxilia seus gestores a identificarem gargalos na equipe.
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+            st.markdown("### Como está sendo sua jornada?")
+            avaliacao_csat = st.select_slider("Qual seu nível de satisfação hoje?", options=["😡 Péssimo", "😕 Ruim", "😐 Indiferente", "🙂 Bom", "🤩 Incrível!"], value="🙂 Bom")
+            comentario_texto = st.text_area("Deixe seu comentário:", height=120)
+            if st.button("Enviar Feedback ✨"):
+                if comentario_texto.strip():
+                    db.salvar_feedback(user["nome"], avaliacao_csat, comentario_texto)
+                    st.success("Feedback registrado com sucesso!")
+                else:
+                    st.warning("Preencha o comentário.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
     # ------------------------------------------
-    # PERFIL: GERENTE / CHEFE
+    # PERFIL: CHEFE
     # ------------------------------------------
     else:
         tab_dashboard, tab_feedbacks_recebidos = st.tabs(["📊 Visão Geral de Performance", "💬 Feedbacks da Equipe"])
 
         with tab_dashboard:
             df_resultados = db.buscar_todos_resultados()
-            
-            # KPI CARDS DE TOPO
             kpi1, kpi2, kpi3, kpi4 = st.columns(4)
             
             with kpi1:
-                st.markdown(f"""
-                <div class="glass-card" style="padding: 16px;">
-                    <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">TOTAL COLABORADORES</span>
-                    <h2 style="margin: 6px 0 0 0; font-size: 1.8rem; color: #818cf8;">{len(df_resultados)}</h2>
-                </div>
-                """, unsafe_allow_html=True)
-                
+                st.markdown(f'<div class="glass-card" style="padding:16px;"><span style="color:#94a3b8;font-size:0.8rem;">COLABORADORES</span><h2 style="margin:6px 0 0 0;color:#818cf8;">{len(df_resultados)}</h2></div>', unsafe_allow_html=True)
             with kpi2:
                 media_equipe = round(df_resultados['media_geral'].mean(), 1) if not df_resultados.empty else 0
-                st.markdown(f"""
-                <div class="glass-card" style="padding: 16px;">
-                    <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">MÉDIA DA EQUIPE</span>
-                    <h2 style="margin: 6px 0 0 0; font-size: 1.8rem; color: #34d399;">{media_equipe} <span style="font-size: 1rem;">/100</span></h2>
-                </div>
-                """, unsafe_allow_html=True)
-
+                st.markdown(f'<div class="glass-card" style="padding:16px;"><span style="color:#94a3b8;font-size:0.8rem;">MÉDIA DA EQUIPE</span><h2 style="margin:6px 0 0 0;color:#34d399;">{media_equipe}</h2></div>', unsafe_allow_html=True)
             with kpi3:
                 top_streak = df_resultados['streak'].max() if not df_resultados.empty else 0
-                st.markdown(f"""
-                <div class="glass-card" style="padding: 16px;">
-                    <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">MAIOR OFENSIVA</span>
-                    <h2 style="margin: 6px 0 0 0; font-size: 1.8rem; color: #fbbf24;">🔥 {top_streak} <span style="font-size: 1rem;">dias</span></h2>
-                </div>
-                """, unsafe_allow_html=True)
-
+                st.markdown(f'<div class="glass-card" style="padding:16px;"><span style="color:#94a3b8;font-size:0.8rem;">MAIOR OFENSIVA</span><h2 style="margin:6px 0 0 0;color:#fbbf24;">🔥 {top_streak}d</h2></div>', unsafe_allow_html=True)
             with kpi4:
                 df_f = db.buscar_feedbacks()
-                st.markdown(f"""
-                <div class="glass-card" style="padding: 16px;">
-                    <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">FEEDBACKS RECEBIDOS</span>
-                    <h2 style="margin: 6px 0 0 0; font-size: 1.8rem; color: #f472b6;">{len(df_f)}</h2>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<div class="glass-card" style="padding:16px;"><span style="color:#94a3b8;font-size:0.8rem;">FEEDBACKS</span><h2 style="margin:6px 0 0 0;color:#f472b6;">{len(df_f)}</h2></div>', unsafe_allow_html=True)
 
             st.write("")
-            st.markdown("### Ranking de Desempenho Técnico")
-            
-            # TABELA DE DESEMPENHO ESTILIZADA
             st.dataframe(
                 df_resultados,
                 column_config={
                     "nome": "Colaborador",
                     "perfil": "Perfil",
-                    "setor": "Setor/Área",
-                    "streak": st.column_config.NumberColumn("Ofensiva (Dias)", format="%d 🔥"),
+                    "setor": "Setor",
+                    "streak": st.column_config.NumberColumn("Ofensiva", format="%d 🔥"),
                     "score_logic": st.column_config.ProgressColumn("Lógica", format="%d", min_value=0, max_value=100),
                     "score_sql": st.column_config.ProgressColumn("SQL", format="%d", min_value=0, max_value=100),
                     "score_bi": st.column_config.ProgressColumn("BI", format="%d", min_value=0, max_value=100),
@@ -382,23 +373,18 @@ else:
             )
 
         with tab_feedbacks_recebidos:
-            st.markdown("### Feedbacks & Avaliações da Equipe")
-            st.caption("Acompanhe o clima organizacional e sugestões enviadas pelos funcionários.")
-            st.write("")
-            
             df_feedbacks = db.buscar_feedbacks()
-            
             if not df_feedbacks.empty:
                 for idx, row in df_feedbacks.iterrows():
                     st.markdown(f"""
                     <div class="feedback-item">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <div style="font-weight: 700; color: #e2e8f0;">👤 {row['Usuário']}</div>
-                            <span style="background: rgba(255, 255, 255, 0.08); padding: 4px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: 600;">{row['Avaliação']}</span>
+                        <div style="display: flex; justify-content: space-between;">
+                            <b>👤 {row['Usuário']}</b>
+                            <span>{row['Avaliação']}</span>
                         </div>
-                        <p style="color: #cbd5e1; font-size: 0.9rem; margin: 0 0 8px 0; line-height: 1.5;">"{row['Comentário']}"</p>
-                        <small style="color: #64748b;">Enviado em: {row['Data']}</small>
+                        <p style="margin: 8px 0; color: #cbd5e1;">"{row['Comentário']}"</p>
+                        <small style="color: #64748b;">{row['Data']}</small>
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.info("Nenhum feedback registrado no momento.")
+                st.info("Nenhum feedback disponível.")
